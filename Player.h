@@ -26,7 +26,6 @@ private:
 
 private:
     //начало игры
-    void GameStart();
     void InitializeGame();
     //состояние игры: счет, количество своих кораблей, кол-во способностей
     void DisplayGameState();
@@ -36,6 +35,7 @@ private:
     void ResetRound();
     
 public:
+    void GameStart();
     //сохранение
     void SaveGame();
     //загрузка

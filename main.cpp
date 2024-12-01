@@ -1,6 +1,7 @@
 #include "GameBoard.h"
 #include "Exceptions.h"
 #include <iostream>
+#include <cstdlib>
 #include <iomanip>
 
 void test1() 
@@ -50,17 +51,26 @@ bool test2()
 		return false;
 	}
 	catch (const MyException& e ){
-		std::cout << e.GetErrorText() << std::endl;
+		std::cout << "it's right: "<< e.GetErrorText() << std::endl;
 	}
 	return true;
 }
 
 int main() 
 {
-	test1();
-	if (test2())
-		std::cout << "Test #2 passed" << std::endl;
-	else
-		std::cout << "Test #2 failed" << std::endl;
-	return 0;
+	try {
+		test1();
+		if (test2())
+			std::cout << "Test #2 passed" << std::endl;
+		else
+			std::cout << "Test #2 failed" << std::endl;
+		return EXIT_SUCCESS;
+	}
+	catch (const MyException& e) {
+		std::cout << "it's unexpected: " << e.GetErrorText() << std::endl;
+	}
+	catch (const std::exception& e) {
+		std::cout << "it's unexpected: " << e.what() << std::endl;
+	}
+	return EXIT_FAILURE;
 }

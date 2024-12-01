@@ -134,6 +134,7 @@
     <ClInclude Include="Ability.h" />
     <ClInclude Include="Exceptions.h" />
     <ClInclude Include="GameBoard.h" />
+    <ClInclude Include="Player.h" />
     <ClInclude Include="Ship.h" />
     <ClInclude Include="ShipManager.h" />
   </ItemGroup>
@@ -142,6 +143,7 @@
     <ClCompile Include="Exceptions.cpp" />
     <ClCompile Include="GameBoard.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Player.cpp" />
     <ClCompile Include="Ship.cpp" />
     <ClCompile Include="ShipManager.cpp" />
   </ItemGroup>
