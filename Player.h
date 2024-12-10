@@ -2,42 +2,55 @@
 #include "GameBoard.h"
 #include "ShipManager.h"
 #include "Ship.h"
-#include "Ability.h"
+#include "AbilityManager.h"
 
-class GameState {
-public:
-    int userScore;
-    int enemyScore;
-    int roundNumber;
-    bool AbilityFlag;
-    int AbilityCount;
-
-public:
-    GameState(int userScore = 20, int enemyScore = 20, int roundNumber = 1, bool AbilityFlag = false, int AbilityCount = 3)  {}
+struct GameState {
+    int UserScore;
+    int EnemyScore;
+    int RoundNumber;
+    bool EnemyTurn;
+    //    bool AbilityFlag;
+    //int AbilityCount;
+    void Init();
 };
 
 
 class Game {
 private:
+    size_t BoardWidth = 10;
+    size_t BoardHeight = 10;
     GameBoard   PlayerBoard;
     GameBoard   EnemyBoard;
-    GameState state;
+    GameState State;
+    AbilityManager Abilities;
     bool isGameOver;
 
 private:
-    //начало игры
-    void InitializeGame();
+    GameBoard GenerateRandomBoard();
+    void InitializePlayerBoard();
+    void InitializeEnemyBoard();
+    void InitializeAbilities();
     //состояние игры: счет, количество своих кораблей, кол-во способностей
     void DisplayGameState();
-    bool UserTurn();
+    bool UserTurn(size_t x, size_t y, bool use_ability);
     bool EnemyTurn();
     //начало нового раунда
     void ResetRound();
     
+    
 public:
-    void GameStart();
+    Game();
+    ~Game();
+    //начало игры
+    void InitializeGame();
+    //раунд
+    bool Round();
     //сохранение
     void SaveGame();
     //загрузка
     void LoadGame();
+
+public:  // для тестов
+    const GameBoard& GetEnemyBoard()const { return EnemyBoard; }
+
 };

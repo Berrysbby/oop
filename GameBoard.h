@@ -3,6 +3,7 @@
 #include "Ship.h"
 #include "ShipManager.h"
 #include <utility>
+#include <ostream>
 #include <vector>
 
 class Ability;
@@ -16,8 +17,10 @@ private:  //типы
 	struct Cell {
 		int Own;
 		CellState State;
+		ShipState EnemyShip;
 	};
 private: //данные
+	ShipManager ShipMan;
 	std::vector< std::vector< Cell > > Cells;
 	bool NextAttackDouble;
 private:  //методы
@@ -28,19 +31,24 @@ private:  //методы
 	void DrawShipVer(size_t ship_index, size_t x0, size_t y0, size_t len);
 
 public: //интерфейс
-	GameBoard( size_t width, size_t height);
+	GameBoard();
+	GameBoard( const ShipManager& shpmn,size_t width, size_t height);
 	GameBoard(const GameBoard&);
 	GameBoard( GameBoard&&);
 	GameBoard& operator=(const GameBoard&);
 	GameBoard& operator=(GameBoard&&);
 	~GameBoard();
 	std::pair<size_t, size_t> GetBoardSize() const;
-	bool PlaceShip(ShipManager& shm,size_t ship_index, size_t x, size_t y, ShipOrientation ori );
-	CellState Attack(ShipManager& shm,size_t x, size_t y);
-	//void SetEnemyState(size_t x, size_t y,CellState state);
+	bool PlaceShip(size_t ship_index, size_t x, size_t y, ShipOrientation ori );
+	Ship& GetShip(size_t shpindx);
+	const ShipManager& GetShipMan()const;
+	std::pair<CellState,ShipState > Attack(size_t x, size_t y);
+	void SetEnemyState(size_t x, size_t y,CellState, ShipState);
 	bool ApplyAbility(Ability&);
 	void SetNextAttackDouble();
 	bool Scan2x2(size_t x, size_t y);
-	void MakeBombing(ShipManager& shm);
-	void Display(ShipManager& shm);
+	void MakeBombing();
+	void Display(std::ostream&)const;
 };
+
+std::ostream& operator <<(std::ostream&, const GameBoard&);

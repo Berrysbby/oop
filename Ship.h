@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <vector>
 
@@ -14,11 +14,16 @@ private:
 	
 public:
 	Ship(size_t ship_size);
+	//атаковать клетку n. возвращает true, если попали в корабль
 	bool Attack(size_t n);
-	ShipState State();
-	ShipState State(size_t indx);
-	size_t Size();
-	ShipOrientation Orientation();
+	//состояние корабля в целом
+	ShipState State()const;
+	//состояние клетки indx корабля
+	ShipState State(size_t indx)const;
+	//размер корабля в клетках
+	size_t Size()const;
+	//ориентация
+	ShipOrientation Orientation()const;
 	void SetOrientation(ShipOrientation);
 };
 

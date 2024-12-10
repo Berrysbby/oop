@@ -2,35 +2,42 @@
 #include "Exceptions.h"
 #include "Ability.h"
 #include <cstdlib>
-#include <iostream>
 #include <iomanip>
+#include <iostream>
 
-GameBoard::GameBoard(size_t width, size_t height)
+GameBoard::GameBoard()
+	:ShipMan(), Cells(), NextAttackDouble(false)
+{
+}
+
+GameBoard::GameBoard(const ShipManager& shpmn, size_t width, size_t height)
+	:ShipMan(shpmn), Cells(), NextAttackDouble(false)
 {
 	Cells.resize(height);  //Y
 	for (auto& row : Cells)
-		row.resize(width, { EmptyCell,CellState::Unknown}); //X
-	NextAttackDouble = false;
+		row.resize(width, { EmptyCell,CellState::Unknown,ShipState::Good }); //X
 }
 
 GameBoard::GameBoard(const GameBoard& r)
+	:ShipMan(r.ShipMan), Cells(r.Cells), NextAttackDouble(r.NextAttackDouble)
 {
-	Cells = r.Cells;
-	NextAttackDouble = r.NextAttackDouble;
 }
+
 GameBoard::GameBoard(GameBoard&& r)
+	:ShipMan(std::move (r.ShipMan)), Cells(std::move(r.Cells)), NextAttackDouble(r.NextAttackDouble)
 {
-	Cells = std::move(r.Cells);
-	NextAttackDouble = r.NextAttackDouble;
 }
+
 GameBoard& GameBoard::operator=(const GameBoard& r)
 {
+	ShipMan = r.ShipMan;
 	Cells = r.Cells;
 	NextAttackDouble = r.NextAttackDouble;
 	return  *this;
 }
 GameBoard& GameBoard::operator=(GameBoard&& r)
 {
+	ShipMan = std::move(r.ShipMan);
 	Cells = std::move(r.Cells);
 	NextAttackDouble = r.NextAttackDouble;
 	return  *this;
@@ -40,22 +47,22 @@ GameBoard::~GameBoard()
 {
 }
 
-bool GameBoard::PlaceShip(ShipManager& shipman,size_t ship_index,size_t x0, size_t y0, ShipOrientation ori)
+bool GameBoard::PlaceShip(size_t ship_index,size_t x0, size_t y0, ShipOrientation ori)
 {
-	Ship& ship = shipman[ship_index];
+	Ship& ship = ShipMan[ship_index];
 	size_t len = ship.Size();
 	auto [w, h] = GetBoardSize();
 	if (y0 >= h || x0 >= w)
 		throw OutOfBoundaries();
 	if (ori == ShipOrientation::Horisontal) {
-		if (x0 + len >= w)
+		if (x0 + len > w)
 			throw IllegalShipPlacement();
 		if (!CanPlaceShip((int)x0 - 1, (int)y0 - 1, (int)(x0 + len + 1), (int)y0 + 1))
 			throw IllegalShipPlacement();
 		DrawShipHor(ship_index, x0, y0, len);
 	}
 	else {
-		if (y0 + len >= h)
+		if (y0 + len > h)
 			throw IllegalShipPlacement();
 		if (!CanPlaceShip((int)x0 - 1, (int)y0 - 1, (int)x0 + 1, (int)(y0 + len + 1)))
 			throw IllegalShipPlacement();
@@ -63,6 +70,16 @@ bool GameBoard::PlaceShip(ShipManager& shipman,size_t ship_index,size_t x0, size
 	}
 	ship.SetOrientation(ori);
 	return true;
+}
+
+Ship& GameBoard::GetShip(size_t shpindx)
+{
+	return ShipMan[shpindx];
+}
+
+const ShipManager& GameBoard::GetShipMan() const
+{
+	return ShipMan;
 }
 
 bool GameBoard::CanPlaceShip(int x0, int y0, int x1, int y1)
@@ -148,15 +165,17 @@ std::pair<size_t, size_t> GameBoard::GetBoardSize() const
 	return {w,h};
 }
 
-CellState GameBoard::Attack(ShipManager& shipman, size_t x, size_t y)
+std::pair<CellState, ShipState > GameBoard::Attack( size_t x, size_t y)
 {
+	bool doubledamage = NextAttackDouble;
+	NextAttackDouble = false;
 	auto [w, h] = GetBoardSize();
 	if (x >= w || y >= h)
 		throw OutOfBoundaries();
 	int ship_index = Cells[y][x].Own;
 	if (ship_index < 0)
-		return CellState::Empty;
-	Ship& ship = shipman[ship_index];
+		return { CellState::Empty,ShipState::Good };
+	Ship& ship = ShipMan[ship_index];
 	size_t n = 0;
 	if (ship.Orientation() == ShipOrientation::Horisontal) {
 		while (x>n && Cells[y][x - n - 1].Own == ship_index)
@@ -167,18 +186,20 @@ CellState GameBoard::Attack(ShipManager& shipman, size_t x, size_t y)
 			n++;
 	}
 	ship.Attack(n);
-	return CellState::Occupied;
+	if(doubledamage)
+		ship.Attack(n);
+	return { CellState::Occupied,ship.State(n) };
 }
 
-/*
-void GameBoard::SetEnemyState(size_t x, size_t y, CellState state)
+
+void GameBoard::SetEnemyState(size_t x, size_t y, CellState cell_state,ShipState ship_state)
 {
 	auto [w, h] = GetBoardSize();
 	if (x >= w || y >= h)
 		throw std::exception();
-	Cells[y][x].State = state;
+	Cells[y][x].State = cell_state;
+	Cells[y][x].EnemyShip = ship_state;
 }
-*/
 
 bool GameBoard::ApplyAbility(Ability& ab)
 {
@@ -187,6 +208,7 @@ bool GameBoard::ApplyAbility(Ability& ab)
 
 void GameBoard::SetNextAttackDouble()
 {
+	std::cout << "used double damage" << std::endl;
 	NextAttackDouble = true;
 }
 
@@ -195,11 +217,13 @@ bool GameBoard::Scan2x2(size_t x, size_t y)
 	auto [w, h] = GetBoardSize();
 	if (x >= w-1 || y >= h-1)
 		throw OutOfBoundaries();
+	std::cout << "used scanner: x=" << x << " y=" << y<<std::endl;
 	return Cells[y][x].Own>=0 || Cells[y+1][x].Own >= 0 || Cells[y][x+1].Own >= 0 || Cells[y+1][x+1].Own >= 0;
 }
 
-void GameBoard::MakeBombing(ShipManager& shipman)
+void GameBoard::MakeBombing()
 {
+	std::cout << "used bombing" << std::endl;
 	auto [w, h] = GetBoardSize();
 	size_t numtry = w * h;
 	while(--numtry){
@@ -207,7 +231,7 @@ void GameBoard::MakeBombing(ShipManager& shipman)
 		unsigned y = std::rand() % h;
 		int indx = Cells[y][x].Own;
 		if (indx >= 0) {
-			Ship& ship = shipman[indx];
+			Ship& ship = ShipMan[indx];
 			unsigned n = std::rand() % ship.Size();
 			ship.Attack(n);
 			return;
@@ -218,19 +242,20 @@ void GameBoard::MakeBombing(ShipManager& shipman)
 
 static const char ship_names[] = "1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
-void GameBoard::Display(ShipManager& shipman)
+void GameBoard::Display(std::ostream& os)const
 {
 	auto [w,h]= GetBoardSize();
 	for (size_t y = 0; y < h; y++) {
+		os <<std::setw(3)<< y<<":  ";
 		for (size_t x = 0; x < w; x++) {
 			int j = Cells[y][x].Own;
 			if (j < 0) {
-				std::cout << ". ";
+				os << ". ";
 				continue;
 			}
-			Ship& ship = shipman[j];
+			const Ship& ship = ShipMan[j];
 			char c = (unsigned) j >= sizeof(ship_names) ? '%' : j >= 0 ? ship_names[j] : '*';
-			std::cout << c;
+			os << c;
 			unsigned count = 0;
 			if (ship.Orientation() == ShipOrientation::Horisontal) {
 				while (count+1 <= x && Cells[y][x - count-1].Own == j) {
@@ -238,18 +263,52 @@ void GameBoard::Display(ShipManager& shipman)
 				}
 			}
 			else {
-				while (count + 1 <= x && Cells[y - count - 1][x].Own == j) {
+				while (count + 1 <= y && Cells[y - count - 1][x].Own == j) {
 					count++;
 				}
 			}
 			ShipState state = ship.State(count);
 			if (state==ShipState::Good)
-				std::cout << ')';
+				os << '+';
 			else if (state == ShipState::Damaged)
-				std::cout << '(';
+				os << '-';
 			else 
-				std::cout << 'X';
+				os << 'X';
 		}
-		std::cout << std::endl;
+
+		os << "   ";
+		os << std::setw(3) << y << ":  ";
+		for (size_t x = 0; x < w; x++) {
+			 os << ' ';
+			 auto cs= Cells[y][x].State;
+			 auto ss = Cells[y][x].EnemyShip;
+			 if(cs==CellState::Occupied){
+				 if (ss == ShipState::Good)
+					 os << '+';
+				 else if (ss == ShipState::Damaged)
+					 os << '-';
+				 else
+					 os << 'X';
+			 }
+			 else if (cs == CellState::Unknown) 
+					 os << '?';
+			 else
+				 os << '.';
+		}
+
+		os << std::endl;
 	}
+	os << std::setw(5) << " ";
+	for (int i = 0; i <w; i++)
+		os << std::setw(2) << i%10;
+	os << std::setw(10) << " ";
+	for (int i = 0; i < w; i++)
+		os << std::setw(2) << i % 10;
+	os << std::endl;
+}
+
+std::ostream& operator<<(std::ostream& os, const GameBoard& gb)
+{
+	gb.Display(os);
+	return os;
 }

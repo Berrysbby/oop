@@ -11,18 +11,6 @@ public:
 	virtual ~Ability() {}
 };
 
-class AbilityManager
-{
-public:
-	AbilityManager();
-	~AbilityManager();
-	std::shared_ptr<Ability> GetAbility();
-	void AddAbility(std::shared_ptr<Ability>);
-	void AddRandomAbility(GameBoard&, ShipManager&);
-private:
-	std::deque<std::shared_ptr<Ability> > Queue;
-};
-
 class DoubleDamage : public Ability 
 {
 public:
@@ -41,8 +29,6 @@ private:
 class  Bombing: public Ability
 {
 public:
-	Bombing(ShipManager&);
+	Bombing();
 	virtual bool Apply(GameBoard&)override;
-private:
-	ShipManager& Shipman;
 };

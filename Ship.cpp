@@ -22,7 +22,7 @@ bool Ship::Attack(size_t n)
 	return true;
 }
 
-ShipState Ship::State() 
+ShipState Ship::State()const 
 {
 	int destr_count = 0;
 	int good_count = 0;
@@ -39,19 +39,19 @@ ShipState Ship::State()
 	return ShipState::Damaged;
 }
 
-ShipState Ship::State(size_t indx)
+ShipState Ship::State(size_t indx)const
 {
 	if (indx >= Body.size())
 		throw OutOfShipSize();
 	return Body[indx];
 }
 
-size_t Ship::Size()
+size_t Ship::Size()const
 {
 	return Body.size();
 }
 
-ShipOrientation Ship::Orientation()
+ShipOrientation Ship::Orientation()const
 {
 	return Orient;
 }

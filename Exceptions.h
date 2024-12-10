@@ -44,3 +44,9 @@ class OutOfShipSize : public MyException
 public:
 	virtual const char* GetErrorText()const override { return "Index out of ship size!"; }
 };
+
+class InternalError : public MyException
+{
+public:
+	virtual const char* GetErrorText()const override { return "Something went wrong!"; }
+};
