@@ -13,9 +13,14 @@ GameBoard::GameBoard()
 GameBoard::GameBoard(const ShipManager& shpmn, size_t width, size_t height)
 	:ShipMan(shpmn), Cells(), NextAttackDouble(false)
 {
-	Cells.resize(height);  //Y
+	SetBoardSize(width, height);
+}
+
+void GameBoard::SetBoardSize(size_t w, size_t h)
+{
+	Cells.resize(h);  //Y
 	for (auto& row : Cells)
-		row.resize(width, { EmptyCell,CellState::Unknown,ShipState::Good }); //X
+		row.resize(w, { EmptyCell,CellState::Unknown,ShipState::Good }); //X
 }
 
 GameBoard::GameBoard(const GameBoard& r)
@@ -81,6 +86,7 @@ const ShipManager& GameBoard::GetShipMan() const
 {
 	return ShipMan;
 }
+
 
 bool GameBoard::CanPlaceShip(int x0, int y0, int x1, int y1)
 {
@@ -201,14 +207,9 @@ void GameBoard::SetEnemyState(size_t x, size_t y, CellState cell_state,ShipState
 	Cells[y][x].EnemyShip = ship_state;
 }
 
-bool GameBoard::ApplyAbility(Ability& ab)
-{
-	return ab.Apply(*this);
-}
 
 void GameBoard::SetNextAttackDouble()
 {
-	std::cout << "used double damage" << std::endl;
 	NextAttackDouble = true;
 }
 
@@ -217,24 +218,33 @@ bool GameBoard::Scan2x2(size_t x, size_t y)
 	auto [w, h] = GetBoardSize();
 	if (x >= w-1 || y >= h-1)
 		throw OutOfBoundaries();
-	std::cout << "used scanner: x=" << x << " y=" << y<<std::endl;
 	return Cells[y][x].Own>=0 || Cells[y+1][x].Own >= 0 || Cells[y][x+1].Own >= 0 || Cells[y+1][x+1].Own >= 0;
 }
 
-void GameBoard::MakeBombing()
+GameBoard::LookupBombingResult GameBoard::LookupBombing()
 {
-	std::cout << "used bombing" << std::endl;
 	auto [w, h] = GetBoardSize();
 	size_t numtry = w * h;
 	while(--numtry){
 		unsigned x = std::rand() % w;
 		unsigned y = std::rand() % h;
-		int indx = Cells[y][x].Own;
-		if (indx >= 0) {
-			Ship& ship = ShipMan[indx];
-			unsigned n = std::rand() % ship.Size();
-			ship.Attack(n);
-			return;
+		int ship_index = Cells[y][x].Own;
+		if (ship_index >= 0) {
+			Ship& ship = ShipMan[ship_index];
+			auto  ori = ship.Orientation();
+			if (ori == ShipOrientation::Horisontal) {
+				unsigned n = 0;
+				while (x > n && Cells[y][x - n - 1].Own == ship_index)
+					n++;
+				x -= n;
+			}
+			else {
+				unsigned n = 0;
+				while (y > n && Cells[y - n - 1][x].Own == ship_index)
+					n++;
+				y -= n;
+			}
+			return { (unsigned)ship_index,x,y };
 		}
 	}
 	throw InvalidBombing();
@@ -311,4 +321,33 @@ std::ostream& operator<<(std::ostream& os, const GameBoard& gb)
 {
 	gb.Display(os);
 	return os;
+}
+
+void GameBoard::Save(std::ostream& str)
+{
+	auto [w, h] = GetBoardSize();
+	str << w <<" "<< h<<std::endl;
+	for (size_t y = 0; y < h; y++) {
+		for (size_t x = 0; x < w; x++) {
+			str << Cells[y][x].Own << " " << int(Cells[y][x].State) << " " << int(Cells[y][x].EnemyShip) << std::endl;
+		}
+	}
+	ShipMan.Save(str);
+}
+
+void GameBoard::Load(std::istream& str)
+{
+	NextAttackDouble = false;
+	size_t w, h;
+	str >> w >> h;
+	SetBoardSize(w, h);
+	for (size_t y = 0; y < h; y++) {
+		for (size_t x = 0; x < w; x++) {
+			int state, enemishp;
+			str >> Cells[y][x].Own >> state >> enemishp;
+			Cells[y][x].State = CellState(state);
+			Cells[y][x].EnemyShip = ShipState(enemishp);
+		}
+	}
+	ShipMan.Load(str);
 }

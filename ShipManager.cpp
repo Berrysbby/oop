@@ -39,3 +39,19 @@ bool ShipManager::AllDestroyed() const
 	}
 	return true;
 }
+
+void ShipManager::Save(std::ostream& str)
+{
+	str << Ships.size()<<std::endl;
+	for (auto& shp : Ships)
+		shp.Save(str);
+}
+
+void ShipManager::Load(std::istream& str)
+{
+	size_t sz;
+	str >> sz;
+	Ships.resize(sz,{1});
+	for (auto& shp : Ships)
+		shp.Load(str);
+}

@@ -3,6 +3,8 @@
 #include "ShipManager.h"
 #include "Ship.h"
 #include "AbilityManager.h"
+#include <ostream>
+#include <istream>
 
 struct GameState {
     int UserScore;
@@ -12,6 +14,8 @@ struct GameState {
     //    bool AbilityFlag;
     //int AbilityCount;
     void Init();
+    void Save(std::ostream& str);
+    void Load(std::istream& str);
 };
 
 
@@ -23,20 +27,16 @@ private:
     GameBoard   EnemyBoard;
     GameState State;
     AbilityManager Abilities;
-    bool isGameOver;
 
 private:
     GameBoard GenerateRandomBoard();
     void InitializePlayerBoard();
     void InitializeEnemyBoard();
     void InitializeAbilities();
-    //состояние игры: счет, количество своих кораблей, кол-во способностей
-    void DisplayGameState();
     bool UserTurn(size_t x, size_t y, bool use_ability);
     bool EnemyTurn();
-    //начало нового раунда
-    void ResetRound();
-    
+    bool ApplyAbility(Ability&);
+
     
 public:
     Game();
@@ -49,6 +49,10 @@ public:
     void SaveGame();
     //загрузка
     void LoadGame();
+    //для использования ability
+    void SetNextAttackDouble();
+    bool Scan2x2(size_t x, size_t y);
+    void MakeBombing();
 
 public:  // для тестов
     const GameBoard& GetEnemyBoard()const { return EnemyBoard; }

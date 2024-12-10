@@ -1,5 +1,6 @@
 #include "Ship.h"
 #include "Exceptions.h"
+#include <iomanip>
 
 Ship::Ship(size_t ship_size)
 {
@@ -59,4 +60,26 @@ ShipOrientation Ship::Orientation()const
 void Ship::SetOrientation(ShipOrientation orient)
 {
 	Orient = orient;
+}
+
+void Ship::Save(std::ostream& str)
+{
+	str << Body.size()<<std::endl;
+	for (const auto& seg : Body)
+		str << int(seg) << " ";
+	str << int(Orient) << std::endl;
+}
+
+void Ship::Load(std::istream& str) 
+{
+	size_t size;
+	str >> size;
+	Body.resize(size);
+	int tmp;
+	for (auto& seg : Body) {
+		str >> tmp;
+		seg = ShipState(tmp);
+	}
+	str >> tmp;
+	Orient=ShipOrientation(tmp);
 }

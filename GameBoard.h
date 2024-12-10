@@ -4,6 +4,7 @@
 #include "ShipManager.h"
 #include <utility>
 #include <ostream>
+#include <istream>
 #include <vector>
 
 class Ability;
@@ -24,6 +25,7 @@ private: //данные
 	std::vector< std::vector< Cell > > Cells;
 	bool NextAttackDouble;
 private:  //методы
+	void SetBoardSize(size_t w,size_t h);
 	bool CanPlaceShip(int x0, int y0, int x1, int y1);
 	void MarkHor(int value,int x0, int y0, int x1);
 	void MarkVer(int value, int x0, int y0, int y1);
@@ -44,11 +46,13 @@ public: //интерфейс
 	const ShipManager& GetShipMan()const;
 	std::pair<CellState,ShipState > Attack(size_t x, size_t y);
 	void SetEnemyState(size_t x, size_t y,CellState, ShipState);
-	bool ApplyAbility(Ability&);
 	void SetNextAttackDouble();
 	bool Scan2x2(size_t x, size_t y);
-	void MakeBombing();
+	struct LookupBombingResult { unsigned ship_index, x, y; };
+	LookupBombingResult LookupBombing();
 	void Display(std::ostream&)const;
+	void Save(std::ostream&);
+	void Load(std::istream&);
 };
 
 std::ostream& operator <<(std::ostream&, const GameBoard&);

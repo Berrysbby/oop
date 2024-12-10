@@ -2,6 +2,8 @@
 
 #include "Ship.h"
 #include <vector>
+#include <ostream>
+#include <istream>
 
 
 class ShipManager
@@ -15,4 +17,6 @@ public:
 	const Ship& operator[](size_t index)const;
 	size_t Size()const;
 	bool AllDestroyed()const;
+	void Save(std::ostream&);
+	void Load(std::istream&);
 };

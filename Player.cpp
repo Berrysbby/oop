@@ -6,12 +6,25 @@
 #include "Exceptions.h"
 #include <iostream>
 #include <random>
+#include <fstream>
 
-//void DisplayGameState(GameState state) {
-  //  std::cout << "Раунд: " << state.roundNumber << std::endl;
-    //std::cout << "Ваши очки: " << state.userScore << " | Очки врага: " << state.enemyScore << std::endl;
-    //std::cout << "Способность " << (state.AbilityCount != 0 ? "доступно способностей" : "нет способностей") << std::endl;
-//}
+
+void GameState::Init()
+{
+    UserScore = EnemyScore = RoundNumber=0;
+    EnemyTurn = false;
+}
+
+void GameState::Save(std::ostream& str)
+{
+    str << UserScore << " " << EnemyScore << " " << RoundNumber << std::endl;
+}
+
+void GameState::Load(std::istream& str)
+{
+    str >> UserScore >> EnemyScore >> RoundNumber;
+    EnemyTurn = false;
+}
 
 Game::Game()
 {
@@ -27,6 +40,7 @@ void Game::InitializeGame()
     InitializeEnemyBoard();
     InitializePlayerBoard();
     InitializeAbilities();
+    State.Init();
 }
 
 
@@ -136,9 +150,13 @@ void Game::InitializeAbilities()
 
 bool Game::Round()
 {
+    State.RoundNumber += 1;
     for (;;) {
         std::cout << std::endl;
         std::cout << PlayerBoard;
+        std::cout << "Round: " << State.RoundNumber << std::endl;
+        std::cout << "Your Score: " << State.UserScore << " Enemy score: " << State.EnemyScore << std::endl;
+        std::cout << "Abilities: " << Abilities.Size() << std::endl;
         std::cin.clear();
         char cmd;
         std::cout << "Enter cmd (Q,T,L,S): ";
@@ -199,7 +217,7 @@ bool Game::UserTurn(size_t x, size_t y, bool use_ability)
     // use ability
     if (use_ability) {
         auto ability = Abilities.GetAbility();
-        if(EnemyBoard.ApplyAbility(*ability))
+        if(ApplyAbility(*ability))
             std::cout << "scanner found ship" << std::endl;
     }
 
@@ -209,9 +227,46 @@ bool Game::UserTurn(size_t x, size_t y, bool use_ability)
     //return result
     if (cs != CellState::Occupied)
         return false;
+    State.UserScore += 1;
     if (ss == ShipState::Destroyed)
         Abilities.AddRandomAbility(PlayerBoard);
     return true;
+}
+
+void Game::SetNextAttackDouble()
+{
+    std::cout << "used double damage" << std::endl;
+    EnemyBoard.SetNextAttackDouble();
+}
+
+bool Game::Scan2x2(size_t x, size_t y)
+{
+    std::cout << "used scanner: x=" << x << " y=" << y << std::endl;
+    return EnemyBoard.Scan2x2(x, y);
+}
+
+void Game::MakeBombing()
+{
+    try {
+        auto [ship_index, x, y] = EnemyBoard.LookupBombing();
+        const Ship& ship = EnemyBoard.GetShip(ship_index);
+        for (int j = 0; j < 10; ++j) {
+            unsigned m = std::rand() % ship.Size();
+            if (ship.Orientation() == ShipOrientation::Horisontal)
+                x += m;
+            else
+                y += m;
+            if (ship.State(m) != ShipState::Destroyed)
+                break;
+        }
+        std::cout << "used bombing: " << x << " " << y << std::endl;
+        auto [cs, ss] = EnemyBoard.Attack(x, y);
+        PlayerBoard.SetEnemyState(x, y, cs, ss);
+        State.UserScore += 1;
+    }
+    catch (...) {
+        std::cout << "used bombing: error" << std::endl;
+    }
 }
 
 bool Game::EnemyTurn()
@@ -228,15 +283,34 @@ bool Game::EnemyTurn()
     auto [cs, ss] = PlayerBoard.Attack(x, y);
     EnemyBoard.SetEnemyState(x, y, cs, ss);
     //return result
-    if (cs == CellState::Occupied)
-        return true;
-    return false;
+    if (cs != CellState::Occupied)
+        return false;
+    State.EnemyScore += 1;
+    return true;
+}
+
+bool Game::ApplyAbility(Ability& ab)
+{
+    return ab.Apply(*this);
 }
 
 void Game::SaveGame()
 {
+    std::ofstream of("saved_game", std::ios_base::trunc);
+    of << BoardWidth << " " << BoardHeight<<std::endl;
+    PlayerBoard.Save(of);
+    EnemyBoard.Save(of);
+    State.Save(of);
+    Abilities.Save(of);
 }
 
 void Game::LoadGame()
 {
+    std::ifstream f("saved_game");
+    f>> BoardWidth>>BoardHeight;
+    PlayerBoard.Load(f);
+    EnemyBoard.Load(f);
+    State.Load(f);
+    Abilities.Load(f);
 }
+

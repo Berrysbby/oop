@@ -1,6 +1,8 @@
 ﻿#pragma once
 
 #include <vector>
+#include <ostream>
+#include <istream>
 
 enum class ShipState { Good, Damaged, Destroyed };
 enum class ShipOrientation { Horisontal, Vertical};
@@ -25,6 +27,8 @@ public:
 	//ориентация
 	ShipOrientation Orientation()const;
 	void SetOrientation(ShipOrientation);
+	void Save(std::ostream&);
+	void Load(std::istream&);
 };
 
 
