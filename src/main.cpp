@@ -5,7 +5,7 @@
 #include <cstdlib>
 #include <iomanip>
 
-void test1() 
+void test1() // test placement
 {
 	ShipManager ships({ 2,1,3,1,3 });
 	GameBoard a(ships,10, 8);
@@ -18,7 +18,7 @@ void test1()
 	
 }
 
-bool test2()
+bool test2()  // test GameBoard / Attack /Ship states
 {
 	ShipManager ships_init({ 4 });
 	GameBoard a(ships_init,10, 8);
@@ -63,7 +63,7 @@ bool test2()
 	return true;
 }
 
-void test3()
+void test_game_round()
 {
 	Game gm;
 	gm.InitializeGame();
@@ -73,12 +73,16 @@ void test3()
 int main() 
 {
 	try {
+
 		test1();
+
 		if (test2())
 			std::cout << "Test #2 passed" << std::endl;
 		else
 			std::cout << "Test #2 failed" << std::endl;
-		test3();
+
+		test_game_round();
+
 		return EXIT_SUCCESS;
 	}
 	catch (const MyException& e) {

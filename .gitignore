@@ -6,3 +6,6 @@
 /SeaBattle.vcxproj
 /SeaBattle.vcxproj
 /SeaBattle.vcxproj.filters
+/src/.vs/*
+/src/SeaBattle/x64/*
+/src/x64/*
