@@ -43,6 +43,10 @@ void Game::InitializeGame()
     State.Init();
 }
 
+void Game::InitializeRound()
+{
+    InitializeEnemyBoard();
+}
 
 GameBoard Game::GenerateRandomBoard()
 {
@@ -148,7 +152,7 @@ void Game::InitializeAbilities()
     }
 }
 
-bool Game::Round()
+RoundResult Game::Round()
 {
     State.RoundNumber += 1;
     for (;;) {
@@ -163,7 +167,7 @@ bool Game::Round()
         std::cin >> cmd;
         std::cout << std::endl;
         if (cmd == 'Q')
-            return false;
+            return RoundResult::Quit;
         if (cmd == 'L'){
             LoadGame();
             continue;
@@ -194,19 +198,39 @@ bool Game::Round()
         if (EnemyBoard.GetShipMan().AllDestroyed()) {
             std::cout << EnemyBoard << std::endl;
             std::cout << "Round is over. You won!"<<std::endl;
-            break;
+            return RoundResult::RoundOver;
         }
         EnemyTurn();
         if (PlayerBoard.GetShipMan().AllDestroyed()) {
             std::cout << PlayerBoard << std::endl;
-            std::cout << "Round is over. You were defeated!" << std::endl;
+            std::cout << "Game is over. You were defeated!" << std::endl;
             break;
         }
     }
 
-    return true;
+    return RoundResult::GameOver;
 }
 
+void Game::RunGame() 
+{
+    for(;;){
+        std::cout << "Initialize GAME" << std::endl;
+        InitializeGame();
+        for(;;){
+            auto res= Round();
+            if (res == RoundResult::Quit) {
+                std::cout << "Quit" << std::endl;
+                return;
+            }
+            if (res == RoundResult::GameOver)
+                break;
+            if (res == RoundResult::RoundOver) {
+                std::cout << "Initialize ROUND" << std::endl;
+                InitializeRound();
+            }
+        }
+    }
+}
 
 bool Game::UserTurn(size_t x, size_t y, bool use_ability)
 {

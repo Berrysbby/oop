@@ -18,7 +18,7 @@ struct GameState {
     void Load(std::istream& str);
 };
 
-
+enum class RoundResult{Quit,GameOver,RoundOver};
 class Game {
 private:
     size_t BoardWidth = 10;
@@ -29,10 +29,14 @@ private:
     AbilityManager Abilities;
 
 private:
+    void InitializeGame();
+    void InitializeRound();
     GameBoard GenerateRandomBoard();
     void InitializePlayerBoard();
     void InitializeEnemyBoard();
     void InitializeAbilities();
+    //раунд
+    RoundResult Round();
     bool UserTurn(size_t x, size_t y, bool use_ability);
     bool EnemyTurn();
     bool ApplyAbility(Ability&);
@@ -41,10 +45,8 @@ private:
 public:
     Game();
     ~Game();
-    //начало игры
-    void InitializeGame();
-    //раунд
-    bool Round();
+    //вся игра
+    void RunGame();
     //сохранение
     void SaveGame();
     //загрузка

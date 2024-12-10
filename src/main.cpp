@@ -63,11 +63,10 @@ bool test2()  // test GameBoard / Attack /Ship states
 	return true;
 }
 
-void test_game_round()
+void test_game()
 {
 	Game gm;
-	gm.InitializeGame();
-	gm.Round();
+	gm.RunGame();
 }
 
 int main() 
@@ -81,7 +80,7 @@ int main()
 		else
 			std::cout << "Test #2 failed" << std::endl;
 
-		test_game_round();
+		test_game();
 
 		return EXIT_SUCCESS;
 	}
