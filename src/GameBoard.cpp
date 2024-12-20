@@ -250,78 +250,41 @@ GameBoard::LookupBombingResult GameBoard::LookupBombing()
 	throw InvalidBombing();
 }
 
-static const char ship_names[] = "1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-
-void GameBoard::Display(std::ostream& os)const
+void GameBoard::PopulateShipsRandom()
 {
-	auto [w,h]= GetBoardSize();
-	for (size_t y = 0; y < h; y++) {
-		os <<std::setw(3)<< y<<":  ";
-		for (size_t x = 0; x < w; x++) {
-			int j = Cells[y][x].Own;
-			if (j < 0) {
-				os << ". ";
-				continue;
-			}
-			const Ship& ship = ShipMan[j];
-			char c = (unsigned) j >= sizeof(ship_names) ? '%' : j >= 0 ? ship_names[j] : '*';
-			os << c;
-			unsigned count = 0;
-			if (ship.Orientation() == ShipOrientation::Horisontal) {
-				while (count+1 <= x && Cells[y][x - count-1].Own == j) {
-					count++;
-				}
+	auto [w, h] = GetBoardSize();
+	for (int i = 0; i < 10; i++) {
+		bool newship;
+		do {
+			auto ori = std::rand() & 1 ? ShipOrientation::Horisontal : ShipOrientation::Vertical;
+			auto s = ShipMan[i].Size();   //ship size
+			unsigned x, y;
+			if (ori == ShipOrientation::Horisontal) {
+				x = std::rand() % (w - 1 - s);
+				y = std::rand() % (h - 1);
 			}
 			else {
-				while (count + 1 <= y && Cells[y - count - 1][x].Own == j) {
-					count++;
-				}
+				x = std::rand() % (w - 1);
+				y = std::rand() % (h - 1 - s);
 			}
-			ShipState state = ship.State(count);
-			if (state==ShipState::Good)
-				os << '+';
-			else if (state == ShipState::Damaged)
-				os << '-';
-			else 
-				os << 'X';
-		}
-
-		os << "   ";
-		os << std::setw(3) << y << ":  ";
-		for (size_t x = 0; x < w; x++) {
-			 os << ' ';
-			 auto cs= Cells[y][x].State;
-			 auto ss = Cells[y][x].EnemyShip;
-			 if(cs==CellState::Occupied){
-				 if (ss == ShipState::Good)
-					 os << '+';
-				 else if (ss == ShipState::Damaged)
-					 os << '-';
-				 else
-					 os << 'X';
-			 }
-			 else if (cs == CellState::Unknown) 
-					 os << '?';
-			 else
-				 os << '.';
-		}
-
-		os << std::endl;
+			newship = false;
+			try {
+				newship = PlaceShip(i, x, y, ori);
+			}
+			catch (...) {
+			}
+		} while (!newship);
 	}
-	os << std::setw(5) << " ";
-	for (int i = 0; i <w; i++)
-		os << std::setw(2) << i%10;
-	os << std::setw(10) << " ";
-	for (int i = 0; i < w; i++)
-		os << std::setw(2) << i % 10;
-	os << std::endl;
 }
 
-std::ostream& operator<<(std::ostream& os, const GameBoard& gb)
+GameBoard::Cell GameBoard::GetCell(size_t x, size_t y) const
 {
-	gb.Display(os);
-	return os;
+	auto [w, h] = GetBoardSize();
+	if (x >= w || y >= h)
+		throw OutOfBoundaries();
+	return Cells[y][x];
 }
+
 
 void GameBoard::Save(std::ostream& str)
 {
@@ -350,4 +313,75 @@ void GameBoard::Load(std::istream& str)
 		}
 	}
 	ShipMan.Load(str);
+}
+
+static const char ship_names[] = "1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+std::ostream& operator<<(std::ostream& os, const GameBoard& gb)
+{
+	auto [w, h] = gb.GetBoardSize();
+	for (size_t y = 0; y < h; y++) {
+		os << std::setw(3) << y << ":  ";
+		for (size_t x = 0; x < w; x++) {
+			GameBoard::Cell cell = gb.GetCell(x, y);
+			int j = cell.Own;
+			if (j < 0) {
+				os << ". ";
+				continue;
+			}
+			const ShipManager& shpmn = gb.GetShipMan();
+			const Ship& ship = shpmn[j];
+			char c = (unsigned)j >= sizeof(ship_names) ? '%' : j >= 0 ? ship_names[j] : '*';
+			os << c;
+			unsigned count = 0;
+			if (ship.Orientation() == ShipOrientation::Horisontal) {
+				while (count + 1 <= x && gb.GetCell(x - count - 1, y).Own == j) {
+					count++;
+				}
+			}
+			else {
+				while (count + 1 <= y && gb.GetCell(x, y - count - 1).Own == j) {
+					count++;
+				}
+			}
+			ShipState state = ship.State(count);
+			if (state == ShipState::Good)
+				os << '+';
+			else if (state == ShipState::Damaged)
+				os << '-';
+			else
+				os << 'X';
+		}
+
+		os << "   ";
+		os << std::setw(3) << y << ":  ";
+		for (size_t x = 0; x < w; x++) {
+			os << ' ';
+			GameBoard::Cell cell = gb.GetCell(x, y);
+			auto cs = cell.State;
+			auto ss = cell.EnemyShip;
+			if (cs == CellState::Occupied) {
+				if (ss == ShipState::Good)
+					os << '+';
+				else if (ss == ShipState::Damaged)
+					os << '-';
+				else
+					os << 'X';
+			}
+			else if (cs == CellState::Unknown)
+				os << '?';
+			else
+				os << '.';
+		}
+
+		os << std::endl;
+	}
+	os << std::setw(5) << " ";
+	for (int i = 0; i < w; i++)
+		os << std::setw(2) << i % 10;
+	os << std::setw(10) << " ";
+	for (int i = 0; i < w; i++)
+		os << std::setw(2) << i % 10;
+	os << std::endl;
+	return os;
 }

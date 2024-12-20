@@ -1,6 +1,9 @@
 #include "GameBoard.h"
 #include "Exceptions.h"
 #include "Player.h"
+#include "GameController.h"
+#include "Commander.h"
+#include "Displayer.h"
 #include <iostream>
 #include <cstdlib>
 #include <iomanip>
@@ -66,7 +69,10 @@ bool test2()  // test GameBoard / Attack /Ship states
 void test_game()
 {
 	Game gm;
-	gm.RunGame();
+	Commander cmd;
+	Display dsp;
+	GameController<Commander, Display> gc(gm, cmd,dsp);
+	gc.RunGame();
 }
 
 int main() 

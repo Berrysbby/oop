@@ -13,7 +13,7 @@ enum class CellState { Unknown, Empty, Occupied };
 
 class GameBoard
 {
-private:  //типы 
+public:  //типы 
 	enum { EmptyCell = -1, SurrCell = -2 };
 	struct Cell {
 		int Own;
@@ -50,7 +50,9 @@ public: //интерфейс
 	bool Scan2x2(size_t x, size_t y);
 	struct LookupBombingResult { unsigned ship_index, x, y; };
 	LookupBombingResult LookupBombing();
-	void Display(std::ostream&)const;
+	void PopulateShipsRandom();
+	//void Display(std::ostream&)const;
+	Cell GetCell(size_t x, size_t y)const;
 	void Save(std::ostream&);
 	void Load(std::istream&);
 };

@@ -4,9 +4,10 @@
 #include "Ship.h"
 #include "AbilityManager.h"
 #include "Exceptions.h"
-#include <iostream>
+//#include <iostream>
 #include <random>
 #include <fstream>
+#include <sstream>
 
 
 void GameState::Init()
@@ -35,12 +36,43 @@ Game::~Game()
 {
 }
 
-void Game::InitializeGame()
+void Game::InitializeGame(bool gen)
 {
     InitializeEnemyBoard();
-    InitializePlayerBoard();
-    InitializeAbilities();
+    InitializePlayerBoard(gen);
+    Abilities.InitForNewGame(BoardWidth,BoardHeight);
     State.Init();
+}
+
+GameBoard& Game::GetPlayerBoard()
+{
+    return PlayerBoard;
+}
+
+size_t Game::GetAbilitiesSize() const
+{
+    return Abilities.Size();
+}
+
+const GameState& Game::GetGameState()
+{
+    return State;
+}
+
+std::string Game::GetAbilityMessage()
+{
+    return std::move(AbilityMessage);
+}
+
+bool Game::PlacePlayerShip(int indx,size_t x, size_t y, ShipOrientation ori)
+{
+    bool newship = false;
+    try {
+        newship = PlayerBoard.PlaceShip(indx, x, y, ori);
+    }
+    catch (...) {
+    }
+    return newship;
 }
 
 void Game::InitializeRound()
@@ -52,61 +84,18 @@ GameBoard Game::GenerateRandomBoard()
 {
     ShipManager sm({ 4,3,3,2,2,2,1,1,1,1 });
     GameBoard b(sm, BoardWidth, BoardHeight);
-    for (int i = 0; i < 10; i++) {
-        bool newship;
-        do {
-            auto ori = std::rand() & 1 ? ShipOrientation::Horisontal : ShipOrientation::Vertical;
-            auto s = sm[i].Size();   //ship size
-            unsigned x, y;
-            if (ori == ShipOrientation::Horisontal) {
-                x = std::rand() % (BoardWidth - 1 - s);
-                y = std::rand() % (BoardHeight - 1);
-            }
-            else {
-                x = std::rand() % (BoardWidth - 1);
-                y = std::rand() % (BoardHeight - 1 - s);
-            }
-            newship = false;
-            try {
-                newship = b.PlaceShip(i, x, y, ori);
-            }
-            catch (...) {
-            }
-        } while (!newship);
-    }
+    b.PopulateShipsRandom();
     return b;
 }
 
-void Game::InitializePlayerBoard()
+void Game::InitializePlayerBoard(bool gen)
 {
-    std::cout << "Do you want to generate random board?(y,n)";
-    char ans;
-    std::cin >> ans;
-    if (ans == 'y') {
+    if (gen) {
         PlayerBoard = GenerateRandomBoard();
         return;
     }
     ShipManager sm({ 4,3,3,2,2,2,1,1,1,1 });
-    GameBoard b(sm, BoardWidth, BoardHeight);
-    for (int i = 0; i < 10; i++) {
-        bool newship;
-        do {
-         //   
-            auto s = sm[i].Size();   //ship size
-            unsigned x, y;
-            char o;
-            std::cout << b<<std::endl<<s<<"-segment ship; enter X Y O(h or v): ";
-            std::cin >> x >> y >> o;
-            auto ori = o=='h' ? ShipOrientation::Horisontal : ShipOrientation::Vertical;
-            newship = false;
-            try {
-                newship = b.PlaceShip(i, x, y, ori);
-            }
-            catch (...) {
-            }
-        } while (!newship);
-    }
-    PlayerBoard = b;
+    PlayerBoard = GameBoard(sm, BoardWidth, BoardHeight);
 }
 
 void Game::InitializeEnemyBoard()
@@ -114,123 +103,21 @@ void Game::InitializeEnemyBoard()
     EnemyBoard =GenerateRandomBoard();
 }
 
-void Game::InitializeAbilities()
-{
-    unsigned x = std::rand() % (BoardWidth - 1 );
-    unsigned y = std::rand() % (BoardHeight - 1);
-    switch (std::rand() % 6) {
-        case 0:
-            Abilities.AddAbility(std::make_shared<DoubleDamage>());
-            Abilities.AddAbility(std::make_shared<Bombing>());
-            Abilities.AddAbility(std::make_shared<Scanner>(x,y));
-            break;
-        case 1:
-            Abilities.AddAbility(std::make_shared<DoubleDamage>());
-            Abilities.AddAbility(std::make_shared<Scanner>(x, y));
-            Abilities.AddAbility(std::make_shared<Bombing>());
-            break;
-        case 2:
-            Abilities.AddAbility(std::make_shared<Bombing>());
-            Abilities.AddAbility(std::make_shared<Scanner>(x, y));
-            Abilities.AddAbility(std::make_shared<DoubleDamage>());
-            break;
-        case 3:
-            Abilities.AddAbility(std::make_shared<Bombing>());
-            Abilities.AddAbility(std::make_shared<DoubleDamage>());
-            Abilities.AddAbility(std::make_shared<Scanner>(x, y));
-            break;
-        case 4:
-            Abilities.AddAbility(std::make_shared<Scanner>(x, y));
-            Abilities.AddAbility(std::make_shared<Bombing>());
-            Abilities.AddAbility(std::make_shared<DoubleDamage>());
-            break;
-        case 5:
-            Abilities.AddAbility(std::make_shared<Scanner>(x, y));
-            Abilities.AddAbility(std::make_shared<DoubleDamage>());
-            Abilities.AddAbility(std::make_shared<Bombing>());
-            break;
-    }
-}
 
-RoundResult Game::Round()
+RoundResult Game::Turn(size_t x, size_t y, bool ab)
 {
     State.RoundNumber += 1;
-    for (;;) {
-        std::cout << std::endl;
-        std::cout << PlayerBoard;
-        std::cout << "Round: " << State.RoundNumber << std::endl;
-        std::cout << "Your Score: " << State.UserScore << " Enemy score: " << State.EnemyScore << std::endl;
-        std::cout << "Abilities: " << Abilities.Size() << std::endl;
-        std::cin.clear();
-        char cmd;
-        std::cout << "Enter cmd (Q,T,L,S): ";
-        std::cin >> cmd;
-        std::cout << std::endl;
-        if (cmd == 'Q')
-            return RoundResult::Quit;
-        if (cmd == 'L'){
-            LoadGame();
-            continue;
-        }
-        if (cmd == 'S') {
-            SaveGame();
-            continue;
-        }
-        if (cmd != 'T') {
-            continue;
-        }
-        std::cin.clear();
-        int x = -1, y = -1;
-        char ability='n';
-        if(!Abilities.Empty()){
-            std::cout << "Enter x y ability(y or n): ";
-            std::cin >> x >> y >> ability;
-            std::cout << std::endl;
-        }
-        else {
-            std::cout << "Enter x y: ";
-            std::cin >> x >> y ;
-            std::cout << std::endl;
-        }
-        if (x < 0 || y < 0)
-            continue;
-        UserTurn(x, y, ability == 'y'); 
-        if (EnemyBoard.GetShipMan().AllDestroyed()) {
-            std::cout << EnemyBoard << std::endl;
-            std::cout << "Round is over. You won!"<<std::endl;
-            return RoundResult::RoundOver;
-        }
-        EnemyTurn();
-        if (PlayerBoard.GetShipMan().AllDestroyed()) {
-            std::cout << PlayerBoard << std::endl;
-            std::cout << "Game is over. You were defeated!" << std::endl;
-            break;
-        }
+    UserTurn(x, y, ab); 
+    if (EnemyBoard.GetShipMan().AllDestroyed()) {
+        return RoundResult::RoundOver;
     }
-
-    return RoundResult::GameOver;
+    EnemyTurn();
+    if (PlayerBoard.GetShipMan().AllDestroyed()) {
+        return RoundResult::GameOver;
+    }
+    return RoundResult::Continue;
 }
 
-void Game::RunGame() 
-{
-    for(;;){
-        std::cout << "Initialize GAME" << std::endl;
-        InitializeGame();
-        for(;;){
-            auto res= Round();
-            if (res == RoundResult::Quit) {
-                std::cout << "Quit" << std::endl;
-                return;
-            }
-            if (res == RoundResult::GameOver)
-                break;
-            if (res == RoundResult::RoundOver) {
-                std::cout << "Initialize ROUND" << std::endl;
-                InitializeRound();
-            }
-        }
-    }
-}
 
 bool Game::UserTurn(size_t x, size_t y, bool use_ability)
 {
@@ -242,7 +129,7 @@ bool Game::UserTurn(size_t x, size_t y, bool use_ability)
     if (use_ability) {
         auto ability = Abilities.GetAbility();
         if(ApplyAbility(*ability))
-            std::cout << "scanner found ship" << std::endl;
+            AbilityMessage+=": scanner found ship";
     }
 
     //perform attack
@@ -252,20 +139,24 @@ bool Game::UserTurn(size_t x, size_t y, bool use_ability)
     if (cs != CellState::Occupied)
         return false;
     State.UserScore += 1;
-    if (ss == ShipState::Destroyed)
-        Abilities.AddRandomAbility(PlayerBoard);
+    if (ss == ShipState::Destroyed) {
+        auto [w, h] = PlayerBoard.GetBoardSize();
+        Abilities.AddRandomAbility(w, h);
+    }
     return true;
 }
 
 void Game::SetNextAttackDouble()
 {
-    std::cout << "used double damage" << std::endl;
+    AbilityMessage = "used double damage";
     EnemyBoard.SetNextAttackDouble();
 }
 
 bool Game::Scan2x2(size_t x, size_t y)
 {
-    std::cout << "used scanner: x=" << x << " y=" << y << std::endl;
+    std::ostringstream os;
+    os << "used scanner: x=" << x << " y=" << y;
+    AbilityMessage = os.str();
     return EnemyBoard.Scan2x2(x, y);
 }
 
@@ -283,13 +174,15 @@ void Game::MakeBombing()
             if (ship.State(m) != ShipState::Destroyed)
                 break;
         }
-        std::cout << "used bombing: " << x << " " << y << std::endl;
+        std::ostringstream os;
+        os << "used bombing: " << x << " " << y;
+        AbilityMessage = os.str();
         auto [cs, ss] = EnemyBoard.Attack(x, y);
         PlayerBoard.SetEnemyState(x, y, cs, ss);
         State.UserScore += 1;
     }
     catch (...) {
-        std::cout << "used bombing: error" << std::endl;
+        AbilityMessage = "used bombing: error";
     }
 }
 

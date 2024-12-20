@@ -133,8 +133,11 @@
   <ItemGroup>
     <ClInclude Include="Ability.h" />
     <ClInclude Include="AbilityManager.h" />
+    <ClInclude Include="Commander.h" />
+    <ClInclude Include="Displayer.h" />
     <ClInclude Include="Exceptions.h" />
     <ClInclude Include="GameBoard.h" />
+    <ClInclude Include="GameController.h" />
     <ClInclude Include="Player.h" />
     <ClInclude Include="Ship.h" />
     <ClInclude Include="ShipManager.h" />
@@ -142,8 +145,11 @@
   <ItemGroup>
     <ClCompile Include="Ability.cpp" />
     <ClCompile Include="AbilityManager.cpp" />
+    <ClCompile Include="Commander.cpp" />
+    <ClCompile Include="Displayer.cpp" />
     <ClCompile Include="Exceptions.cpp" />
     <ClCompile Include="GameBoard.cpp" />
+    <ClCompile Include="GameController.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Player.cpp" />
     <ClCompile Include="Ship.cpp" />

@@ -5,6 +5,7 @@
 #include "AbilityManager.h"
 #include <ostream>
 #include <istream>
+#include <string>
 
 struct GameState {
     int UserScore;
@@ -18,7 +19,7 @@ struct GameState {
     void Load(std::istream& str);
 };
 
-enum class RoundResult{Quit,GameOver,RoundOver};
+enum class RoundResult{Quit,GameOver,RoundOver,Continue};
 class Game {
 private:
     size_t BoardWidth = 10;
@@ -27,16 +28,12 @@ private:
     GameBoard   EnemyBoard;
     GameState State;
     AbilityManager Abilities;
+    std::string AbilityMessage;
 
 private:
-    void InitializeGame();
-    void InitializeRound();
     GameBoard GenerateRandomBoard();
-    void InitializePlayerBoard();
+    void InitializePlayerBoard(bool gen);
     void InitializeEnemyBoard();
-    void InitializeAbilities();
-    //раунд
-    RoundResult Round();
     bool UserTurn(size_t x, size_t y, bool use_ability);
     bool EnemyTurn();
     bool ApplyAbility(Ability&);
@@ -45,8 +42,15 @@ private:
 public:
     Game();
     ~Game();
-    //вся игра
-    void RunGame();
+    void InitializeGame(bool gen);
+    GameBoard& GetPlayerBoard();
+    size_t GetAbilitiesSize()const;
+    const GameState& GetGameState();
+    std::string GetAbilityMessage();
+    bool PlacePlayerShip(int indx,size_t x, size_t y, ShipOrientation );
+    void InitializeRound();
+    //раунд
+    RoundResult Turn(size_t x, size_t y, bool ab);
     //сохранение
     void SaveGame();
     //загрузка
